@@ -206,7 +206,7 @@ class ApexCore {
       this.pending.delete(k);
       const won = p.winners.has(d);
       observeAnalogue(p.key, won);
-      observeCalibration(p.confidence, won);
+      observeCalibration(sym, p.confidence, won);
     }
   }
 
