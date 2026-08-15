@@ -433,6 +433,8 @@ class ApexSimulator {
   private cooldown = new Map<string, number>(); // remaining ticks
   private states = new Map<string, MarketSimulationState>();
   private listeners = new Set<() => void>();
+  /** Notified once per contract-resolved trade (used by durable persistence). */
+  private resolvedListeners = new Set<(t: SimTrade) => void>();
   private seq = 0;
   private restored = false;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -449,6 +451,16 @@ class ApexSimulator {
   subscribe(fn: () => void): () => void {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
+  }
+
+  /**
+   * Subscribe to contract RESOLUTIONS. Each callback receives the resolved
+   * trade, already tagged with the only market it belongs to, so a durable
+   * store can append evidence without ever merging markets.
+   */
+  onResolved(fn: (t: SimTrade) => void): () => void {
+    this.resolvedListeners.add(fn);
+    return () => this.resolvedListeners.delete(fn);
   }
 
   private emit() {
@@ -639,6 +651,10 @@ class ApexSimulator {
       }
       this.persist();
     }
+    // Notify durable persistence AFTER the ledger write, so a listener can
+    // never observe a half-resolved trade.
+    if (resolvedNow.length)
+      for (const t of resolvedNow) this.resolvedListeners.forEach((fn) => fn({ ...t }));
     for (const [key, left] of this.cooldown) {
       if (!key.startsWith(`${symbol}:`)) continue;
       if (left <= 1) this.cooldown.delete(key);
