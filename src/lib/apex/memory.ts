@@ -66,7 +66,10 @@ export function fingerprint(intel: MarketIntel, c: ContractEval): string {
   const ce = bucketOf(c.compositeEdge, [-20, -5, 5, 20, 40]);
   const pa = bucketOf(c.pressureAsymmetry, [-0.3, -0.05, 0.05, 0.3]);
   const ent = intel.entropy ? bucketOf(intel.entropy.entropy, [0.96, 0.975, 0.985]) : 0;
-  return `${c.id}|${regime}|v${vol}|e${ce}|p${pa}|h${ent}`;
+  // The MARKET is part of the key: an analogue learned on V75 is never
+  // consulted for V100. Cross-market generalisation, if ever wanted, must be
+  // an explicit model — never an accidental key collision.
+  return `${intel.symbol}|${c.id}|${regime}|v${vol}|e${ce}|p${pa}|h${ent}`;
 }
 
 export function observeAnalogue(key: string, won: boolean) {
@@ -84,19 +87,36 @@ export function lookupAnalogue(key: string): { n: number; rate: number } | null 
   return { n: b.n, rate: b.wins / b.n };
 }
 
-export function observeCalibration(confidence: number, won: boolean) {
+export function observeCalibration(symbol: string, confidence: number, won: boolean) {
   load();
   const decile = Math.min(9, Math.max(0, Math.floor(confidence / 10)));
-  const b = (mem.calibration[String(decile)] ??= { n: 0, wins: 0 });
+  // Calibration is learned per market: a well-calibrated V75 cannot vouch for
+  // a badly calibrated V100.
+  const b = (mem.calibration[`${symbol}|${decile}`] ??= { n: 0, wins: 0 });
   b.n++;
   if (won) b.wins++;
   scheduleSave();
 }
 
-export function calibrationTable(): { decile: number; n: number; rate: number }[] {
+/**
+ * Calibration deciles. Pass a symbol for that market's own calibration; with no
+ * symbol the deciles are pooled and must only be presented as a cross-market
+ * view, never as a per-market authority.
+ */
+export function calibrationTable(symbol?: string): { decile: number; n: number; rate: number }[] {
   load();
-  return Object.entries(mem.calibration)
-    .map(([d, b]) => ({ decile: Number(d), n: b.n, rate: b.n ? b.wins / b.n : 0 }))
+  const acc = new Map<number, Bucket>();
+  for (const [key, b] of Object.entries(mem.calibration)) {
+    const [sym, dec] = key.includes("|") ? key.split("|") : ["", key];
+    if (symbol && sym !== symbol) continue;
+    const decile = Number(dec);
+    const cur = acc.get(decile) ?? { n: 0, wins: 0 };
+    cur.n += b.n;
+    cur.wins += b.wins;
+    acc.set(decile, cur);
+  }
+  return [...acc.entries()]
+    .map(([decile, b]) => ({ decile, n: b.n, rate: b.n ? b.wins / b.n : 0 }))
     .sort((a, b) => a.decile - b.decile);
 }
 
@@ -110,6 +130,36 @@ export function memoryStats() {
 export function resetMemory() {
   mem = { analogue: {}, calibration: {}, updatedAt: Date.now() };
   if (typeof window !== "undefined") window.localStorage.removeItem(KEY);
+}
+
+/** Snapshot for durable (database) persistence. */
+export function exportMemory(): MemoryShape {
+  load();
+  return {
+    analogue: { ...mem.analogue },
+    calibration: { ...mem.calibration },
+    updatedAt: mem.updatedAt,
+  };
+}
+
+/**
+ * Merge a durable snapshot back in. For each exact key the record with more
+ * observations wins, so reloading twice cannot double-count evidence.
+ */
+export function importMemory(payload: Partial<MemoryShape> | null | undefined) {
+  load();
+  if (!payload) return;
+  for (const [k, b] of Object.entries(payload.analogue ?? {})) {
+    if (!b || typeof b.n !== "number") continue;
+    const cur = mem.analogue[k];
+    if (!cur || b.n > cur.n) mem.analogue[k] = { n: b.n, wins: b.wins };
+  }
+  for (const [k, b] of Object.entries(payload.calibration ?? {})) {
+    if (!b || typeof b.n !== "number") continue;
+    const cur = mem.calibration[k];
+    if (!cur || b.n > cur.n) mem.calibration[k] = { n: b.n, wins: b.wins };
+  }
+  mem.updatedAt = Math.max(mem.updatedAt, payload.updatedAt ?? 0);
 }
 
 export type { ApexContractId };
