@@ -534,6 +534,56 @@ class ApexSimulator {
     }, 2500);
   }
 
+  /**
+   * Serialise the resolved ledgers, ONE ENTRY PER MARKET. The returned shape is
+   * keyed by symbol so a durable store writes one isolated row per market and
+   * can never blend two markets' evidence.
+   */
+  exportBooks(): Record<string, SimTrade[]> {
+    const out: Record<string, SimTrade[]> = {};
+    for (const [sym, trades] of this.books) {
+      const resolved = trades.filter((t) => t.result !== "OPEN" && t.symbol === sym);
+      if (resolved.length) out[sym] = resolved.slice(-LEDGER_CAP);
+    }
+    return out;
+  }
+
+  /** Resolved ledger of ONE market, for durable per-market persistence. */
+  exportMarket(symbol: string): SimTrade[] {
+    return this.book(symbol)
+      .filter((t) => t.result !== "OPEN" && t.symbol === symbol)
+      .slice(-LEDGER_CAP);
+  }
+
+  /**
+   * Merge durable evidence back in. Every trade is filed under ITS OWN symbol:
+   * a payload that claims to be V100 but contains a V75 trade cannot pollute
+   * V100, the mismatched record is discarded. Duplicate ids are ignored so
+   * reloading twice cannot inflate a market's statistics.
+   */
+  importBooks(books: Record<string, SimTrade[]>) {
+    let added = 0;
+    for (const [sym, trades] of Object.entries(books ?? {})) {
+      if (!sym || !Array.isArray(trades)) continue;
+      const book = this.book(sym);
+      const seen = new Set(book.map((t) => t.id));
+      for (const t of trades) {
+        if (!t || t.symbol !== sym || t.result === "OPEN") continue;
+        if (seen.has(t.id)) continue;
+        seen.add(t.id);
+        book.push(t);
+        added++;
+      }
+      book.sort((a, b) => a.openedAt - b.openedAt);
+      if (book.length > LEDGER_CAP) book.splice(0, book.length - LEDGER_CAP);
+    }
+    if (added) {
+      this.restored = true;
+      this.emit();
+    }
+    return added;
+  }
+
   // ── Universe registration ───────────────────────────────────────────
   /**
    * Every valid market gets a live simulator state immediately, before any
