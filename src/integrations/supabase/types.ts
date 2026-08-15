@@ -10,234 +10,20 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
-      deriv_accounts: {
-        Row: {
-          balance: number | null
-          created_at: string
-          currency: string | null
-          id: string
-          is_active: boolean
-          is_virtual: boolean
-          loginid: string
-          token: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          balance?: number | null
-          created_at?: string
-          currency?: string | null
-          id?: string
-          is_active?: boolean
-          is_virtual?: boolean
-          loginid: string
-          token: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          balance?: number | null
-          created_at?: string
-          currency?: string | null
-          id?: string
-          is_active?: boolean
-          is_virtual?: boolean
-          loginid?: string
-          token?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          deriv_connected: boolean
-          display_name: string | null
-          email: string | null
-          id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          deriv_connected?: boolean
-          display_name?: string | null
-          email?: string | null
-          id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          deriv_connected?: boolean
-          display_name?: string | null
-          email?: string | null
-          id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      trades: {
-        Row: {
-          auto_trade: boolean
-          barrier: string | null
-          closed_at: string | null
-          contract_id: string | null
-          contract_type: string
-          created_at: string
-          deriv_account_id: string | null
-          duration: number | null
-          duration_unit: string | null
-          entry_price: number | null
-          exit_price: number | null
-          id: string
-          is_virtual: boolean
-          loginid: string | null
-          meta: Json | null
-          payout: number | null
-          profit: number | null
-          purchased_at: string | null
-          signal_source: string | null
-          stake: number
-          status: string
-          symbol: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          auto_trade?: boolean
-          barrier?: string | null
-          closed_at?: string | null
-          contract_id?: string | null
-          contract_type: string
-          created_at?: string
-          deriv_account_id?: string | null
-          duration?: number | null
-          duration_unit?: string | null
-          entry_price?: number | null
-          exit_price?: number | null
-          id?: string
-          is_virtual?: boolean
-          loginid?: string | null
-          meta?: Json | null
-          payout?: number | null
-          profit?: number | null
-          purchased_at?: string | null
-          signal_source?: string | null
-          stake: number
-          status?: string
-          symbol: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          auto_trade?: boolean
-          barrier?: string | null
-          closed_at?: string | null
-          contract_id?: string | null
-          contract_type?: string
-          created_at?: string
-          deriv_account_id?: string | null
-          duration?: number | null
-          duration_unit?: string | null
-          entry_price?: number | null
-          exit_price?: number | null
-          id?: string
-          is_virtual?: boolean
-          loginid?: string | null
-          meta?: Json | null
-          payout?: number | null
-          profit?: number | null
-          purchased_at?: string | null
-          signal_source?: string | null
-          stake?: number
-          status?: string
-          symbol?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "trades_deriv_account_id_fkey"
-            columns: ["deriv_account_id"]
-            isOneToOne: false
-            referencedRelation: "deriv_accounts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_preferences: {
-        Row: {
-          alert_sound: boolean
-          created_at: string
-          max_daily_loss: number | null
-          max_stake: number | null
-          min_confidence: number
-          risk_profile: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          alert_sound?: boolean
-          created_at?: string
-          max_daily_loss?: number | null
-          max_stake?: number | null
-          min_confidence?: number
-          risk_profile?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          alert_sound?: boolean
-          created_at?: string
-          max_daily_loss?: number | null
-          max_stake?: number | null
-          min_confidence?: number
-          risk_profile?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_roles: {
-        Row: {
-          created_at: string
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -364,8 +150,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      app_role: ["admin", "moderator", "user"],
-    },
+    Enums: {},
   },
 } as const
