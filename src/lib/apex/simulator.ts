@@ -629,6 +629,7 @@ class ApexSimulator {
    */
   onTick(symbol: string, digit: number, at: number) {
     const state = this.states.get(symbol);
+    const resolvedNow: SimTrade[] = [];
     for (const [key, trade] of this.open) {
       if (trade.symbol !== symbol) continue;
       trade.ticksElapsed++;
@@ -650,6 +651,7 @@ class ApexSimulator {
         state.resolvedTrades++;
       }
       this.persist();
+      resolvedNow.push(trade);
     }
     // Notify durable persistence AFTER the ledger write, so a listener can
     // never observe a half-resolved trade.
